@@ -195,6 +195,88 @@ def test_deqms_sca_p_matches_R(shared_dataset):
     )
 
 
+@pytest.fixture(scope="module")
+def shared_peptide_dataset(tmp_path_factory):
+    """Synthetic peptide / PSM table for summarizer R-parity tests."""
+    rng = np.random.default_rng(7)
+    n_psms, n_proteins, n_channels = 500, 60, 10
+    proteins = [f"prot_{i:04d}" for i in range(n_proteins)]
+    psm_to_prot = rng.choice(proteins, size=n_psms)
+    base = rng.normal(20.0, 2.0, size=n_psms)
+    chan_offsets = rng.normal(0.0, 0.5, size=n_channels)
+    noise = rng.normal(0.0, 0.4, size=(n_psms, n_channels))
+    intensities = base[:, None] + chan_offsets[None, :] + noise
+    df = pd.DataFrame(intensities,
+                      columns=[f"S{c+1:02d}" for c in range(n_channels)])
+    df.insert(0, "protein", psm_to_prot)
+    df.insert(0, "peptide", [f"pep_{i:05d}" for i in range(n_psms)])
+
+    work = tmp_path_factory.mktemp("deqms_summary_parity")
+    pep_tsv = work / "peptides.tsv"
+    df.to_csv(pep_tsv, sep="\t", index=False, na_rep="NA")
+    cmd = (
+        f"source {CONDA_BIN} && conda activate {CONDA_ENV} "
+        f"&& Rscript {R_DRIVER} summarize {pep_tsv} {work / 'R_out'}"
+    )
+    subprocess.run(["bash", "-lc", cmd], check=True, capture_output=True, text=True)
+    return {"df": df, "R_out": work / "R_out"}
+
+
+def test_equal_median_normalization_vs_R(shared_peptide_dataset):
+    from pydeqms import equal_median_normalization
+    df = shared_peptide_dataset["df"]
+    sample_cols = [c for c in df.columns if c not in ("peptide", "protein")]
+    py = equal_median_normalization(df.set_index("peptide")[sample_cols])
+    r = pd.read_csv(shared_peptide_dataset["R_out"] / "equal_median.tsv",
+                    sep="\t", index_col=0)
+    py_aligned = py.reindex(index=r.index, columns=r.columns)
+    np.testing.assert_allclose(py_aligned.to_numpy(), r.to_numpy(),
+                               atol=1e-9, rtol=0)
+
+
+def test_median_summary_vs_R(shared_peptide_dataset):
+    from pydeqms import median_summary
+    df = shared_peptide_dataset["df"]
+    sample_cols = [c for c in df.columns if c not in ("peptide", "protein")]
+    py = median_summary(df, "protein", sample_cols, ref_col=sample_cols[0])
+    r = pd.read_csv(shared_peptide_dataset["R_out"] / "median_summary.tsv",
+                    sep="\t", index_col=0)
+    py_aligned = py.reindex(index=r.index, columns=r.columns)
+    np.testing.assert_allclose(py_aligned.to_numpy(), r.to_numpy(),
+                               atol=1e-9, rtol=0)
+
+
+def test_median_sweeping_vs_R(shared_peptide_dataset):
+    from pydeqms import median_sweeping
+    df = shared_peptide_dataset["df"]
+    sample_cols = [c for c in df.columns if c not in ("peptide", "protein")]
+    py = median_sweeping(df, "protein", sample_cols)
+    r = pd.read_csv(shared_peptide_dataset["R_out"] / "median_sweeping.tsv",
+                    sep="\t", index_col=0)
+    py_aligned = py.reindex(index=r.index, columns=r.columns)
+    np.testing.assert_allclose(py_aligned.to_numpy(), r.to_numpy(),
+                               atol=1e-9, rtol=0)
+
+
+def test_medpolish_summary_vs_R(shared_peptide_dataset):
+    from scipy.stats import pearsonr
+
+    from pydeqms import medpolish_summary
+    df = shared_peptide_dataset["df"]
+    sample_cols = [c for c in df.columns if c not in ("peptide", "protein")]
+    py = medpolish_summary(df, "protein", sample_cols)
+    r = pd.read_csv(shared_peptide_dataset["R_out"] / "medpolish.tsv",
+                    sep="\t", index_col=0)
+    py_aligned = py.reindex(index=r.index, columns=r.columns)
+    r_flat = r.to_numpy().ravel()
+    py_flat = py_aligned.to_numpy().ravel()
+    mask = np.isfinite(r_flat) & np.isfinite(py_flat)
+    r_val, _ = pearsonr(r_flat[mask], py_flat[mask])
+    assert r_val > 0.999, (
+        f"medpolishSummary Pearson r = {r_val:.6f} (expected > 0.999)"
+    )
+
+
 def test_deqms_priorvar_matches_R(shared_dataset):
     res = deqms(shared_dataset["M"], shared_dataset["design"],
                 count=shared_dataset["count"],

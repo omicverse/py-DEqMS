@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pydeqms"
-version = "0.1.0"
+version = "0.1.1"
 description = "Pure-Python port of Bioconductor DEqMS — peptide-count-aware moderated t-tests for differential mass-spec proteomics."
 readme = "README.md"
 requires-python = ">=3.9"

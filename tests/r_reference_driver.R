@@ -1,22 +1,23 @@
 #!/usr/bin/env Rscript
 # Drive limma + DEqMS reference on TSV inputs dumped by the Python side.
 #
-# Usage:
+# Usage (mode='pipeline', original; arg5 = fit_method):
 #   Rscript r_reference_driver.R <M_tsv> <design_tsv> <count_tsv> <out_dir> [fit_method]
 #
-# Outputs (in out_dir):
-#   lm_coefs.tsv     limma::lmFit coefficients
-#   lm_sigma.tsv     fit$sigma vector
-#   lm_su.tsv        fit$stdev.unscaled
-#   eb_t.tsv         eBayes moderated t (after contrasts.fit -1/+1)
-#   eb_p.tsv         eBayes p
-#   eb_meta.tsv      df.prior / s2.prior / df.total[1] / s2.post[1]
-#   sca_t.tsv        DEqMS sca.t
-#   sca_p.tsv        DEqMS sca.p
-#   sca_postvar.tsv  DEqMS sca.postvar
-#   sca_priorvar.tsv DEqMS sca.priorvar
-#   sca_meta.tsv     sca.dfprior (scalar)
-#   timing.tsv       wall-clock for lmFit / eBayes / spectraCounteBayes
+# Usage (mode='summarize'):
+#   Rscript r_reference_driver.R summarize <peptide_tsv> <out_dir>
+#
+# Outputs (mode='pipeline', in out_dir):
+#   lm_coefs.tsv / lm_sigma.tsv / lm_su.tsv
+#   eb_t.tsv / eb_p.tsv / eb_meta.tsv
+#   sca_t.tsv / sca_p.tsv / sca_postvar.tsv / sca_priorvar.tsv / sca_meta.tsv
+#   timing.tsv
+#
+# Outputs (mode='summarize', in out_dir):
+#   equal_median.tsv     equalMedianNormalization(dat[,3:ncol])
+#   median_summary.tsv   medianSummary(dat, group_col=2, ref_col=3)
+#   median_sweeping.tsv  medianSweeping(dat, group_col=2)
+#   medpolish.tsv        medpolishSummary(dat, group_col=2)
 
 suppressPackageStartupMessages({
   library(limma)
@@ -24,6 +25,41 @@ suppressPackageStartupMessages({
 })
 
 args <- commandArgs(trailingOnly = TRUE)
+
+if (length(args) >= 1 && args[[1]] == "summarize") {
+  peptide_tsv <- args[[2]]
+  out_dir     <- args[[3]]
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+
+  dat <- read.table(peptide_tsv, sep = "\t", header = TRUE,
+                    check.names = FALSE, stringsAsFactors = FALSE,
+                    na.strings = c("NA", ""))
+  # dat layout: col1 = peptide, col2 = protein, col3..N = sample channels.
+  sample_cols <- colnames(dat)[3:ncol(dat)]
+  # equalMedianNormalization on the sample block (matrix).
+  M_sample <- as.matrix(dat[, 3:ncol(dat)])
+  rownames(M_sample) <- dat[, 1]
+  M_norm <- equalMedianNormalization(M_sample)
+  write.table(M_norm, file.path(out_dir, "equal_median.tsv"),
+              sep = "\t", quote = FALSE, col.names = NA)
+
+  # medianSummary: use the first sample column as the reference.
+  ms <- medianSummary(dat, group_col = 2, ref_col = 3)
+  write.table(ms, file.path(out_dir, "median_summary.tsv"),
+              sep = "\t", quote = FALSE, col.names = NA)
+
+  msw <- medianSweeping(dat, group_col = 2)
+  write.table(msw, file.path(out_dir, "median_sweeping.tsv"),
+              sep = "\t", quote = FALSE, col.names = NA)
+
+  mp <- medpolishSummary(dat, group_col = 2)
+  write.table(mp, file.path(out_dir, "medpolish.tsv"),
+              sep = "\t", quote = FALSE, col.names = NA)
+
+  cat("R summarize done\n")
+  quit(status = 0)
+}
+
 M_tsv      <- args[[1]]
 design_tsv <- args[[2]]
 count_tsv  <- args[[3]]

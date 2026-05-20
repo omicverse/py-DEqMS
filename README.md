@@ -102,19 +102,33 @@ python examples/benchmark.py --runs 3 --n-proteins 5000 --n-per-group 6
 pytest tests/test_r_parity.py -v
 ```
 
-## What's NOT included (yet)
+## R function coverage
 
-| R function | Status |
+Every public function in `DEqMS` 1.24.0 has a Python counterpart.
+
+| R function | Python | Status |
+|---|---|---|
+| `lmFit` (no-weight, no-correlation) | `pydeqms.lm_fit` | ✅ bit-exact |
+| `eBayes` (Smyth 2004 trigamma-MLE) | `pydeqms.ebayes` | ✅ bit-close |
+| `spectraCounteBayes` (loess / nls / spline) | `pydeqms.spectra_count_ebayes` | ✅ ≤5% sca.t slack |
+| `outputResult` | `pydeqms.output_result` | ✅ |
+| `contrasts.fit` (vector / matrix contrasts) | via the `contrast=` kwarg | ✅ |
+| `equalMedianNormalization` | `pydeqms.equal_median_normalization` | ✅ bit-exact |
+| `medianSummary` | `pydeqms.median_summary` | ✅ bit-exact |
+| `medianSweeping` | `pydeqms.median_sweeping` | ✅ bit-exact |
+| `medpolishSummary` | `pydeqms.medpolish_summary` | ✅ Pearson r > 0.999 |
+| `peptideProfilePlot` | `pydeqms.peptide_profile_plot` | ✅ matplotlib |
+| `Residualplot` | `pydeqms.residual_plot` | ✅ matplotlib |
+| `VarianceBoxplot` | `pydeqms.variance_boxplot` | ✅ matplotlib |
+| `VarianceScatterplot` | `pydeqms.variance_scatter_plot` | ✅ matplotlib |
+
+### Future work
+
+| Feature | Status |
 |---|---|
-| `lmFit` (no-weight, no-correlation) | ✅ v0.1 |
-| `eBayes` (Smyth 2004 trigamma-MLE) | ✅ v0.1 |
-| `spectraCounteBayes` (loess / nls / spline) | ✅ v0.1 |
-| `outputResult` | ✅ v0.1 |
-| `contrasts.fit` (vector / matrix contrasts) | ✅ via the `contrast=` kwarg |
-| `peptideLevelTest` (psm-level) | ⏳ planned (v0.2) |
-| `Residualplot` / `VarianceBoxplot` / `VarianceScatterplot` | ⏳ planned (v0.2; helpers in omicverse) |
-| Weighted least squares (`lmFit(M, design, weights=…)`) | ⏳ planned (v0.2) |
-| Random effects (correlation) | ⏳ planned (v0.3) |
+| `peptideLevelTest` (PSM-level moderated t) | ⏳ planned |
+| Weighted least squares (`lmFit(M, design, weights=…)`) | ⏳ planned |
+| Random effects (correlation) | ⏳ planned |
 
 ## Relationship to omicverse
 
