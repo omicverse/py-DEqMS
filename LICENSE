@@ -1,0 +1,8 @@
+LGPL-3.0 — Lesser General Public License v3.
+
+This Python port is released under the same LGPL-3 license as the
+original Bioconductor DEqMS package
+(https://bioconductor.org/packages/release/bioc/html/DEqMS.html,
+by Yafeng Zhu et al.). The full LGPL-3 text is reproduced from
+https://www.gnu.org/licenses/lgpl-3.0.txt and applies to all files in
+this repository.

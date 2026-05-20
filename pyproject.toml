@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pydeqms"
+version = "0.1.0"
+description = "Pure-Python port of Bioconductor DEqMS — peptide-count-aware moderated t-tests for differential mass-spec proteomics."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Zehua Zeng", email = "starlitnightly@163.com" },
+]
+keywords = [
+    "proteomics", "differential-expression",
+    "limma", "eBayes", "DEqMS",
+    "LC-MS/MS", "TMT", "label-free",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+dependencies = [
+    "numpy>=1.23",
+    "scipy>=1.10",
+    "pandas>=1.5",
+    "scikit-misc>=0.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov", "ruff"]
+plotting = ["matplotlib>=3.6"]
+
+[project.urls]
+Homepage = "https://github.com/omicverse/py-DEqMS"
+Repository = "https://github.com/omicverse/py-DEqMS"
+Issues = "https://github.com/omicverse/py-DEqMS/issues"
+"Upstream Bioc package" = "https://bioconductor.org/packages/release/bioc/html/DEqMS.html"
+"Upstream (omicverse)" = "https://github.com/Starlitnightly/omicverse"
+
+[tool.setuptools.packages.find]
+include = ["pydeqms*"]
+exclude = ["tests*", "examples*", "DEqMS-ref*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+    "ignore::RuntimeWarning",
+]
